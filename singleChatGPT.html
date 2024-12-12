@@ -1,0 +1,969 @@
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"></script>
+
+<script>
+
+    var newFetchThreadId = ""
+    var alreadyStoreThread = "";
+    var singlePageThreadID = "";
+    var storedEmail = sessionStorage.getItem("EmailInSession");
+    var userEmail = storedEmail;
+    $(document).ready(function () {
+        var imageUrl = "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png";
+        var imgElement = $("<img>").attr("src", imageUrl).attr("alt", "Assistant's Image");
+        $("#assistants_image").append(imgElement);
+
+
+        function getOrCheckThreadID() {
+            
+            var url = `https://mdev.topscripts.in/cohen/getThreads.php?assistant=${assistantId}&email=${userEmail}&verified=1&_=${Date.now()}`;
+            ;
+            $.ajax({
+                url: url,
+                method: 'GET',
+                success: function (response) {
+
+                    if (response==="") {
+                        createThreadApi();
+                    } else {
+                        newFetchThreadId = response[0].thread;
+
+                        activeThreadId = newFetchThreadId;
+                        getActiveThreadMsg(activeThreadId);
+                    }
+                }
+            });
+        }
+
+        getOrCheckThreadID();
+
+        function createThreadApi() {
+            $.ajax({
+                url: 'https://api.openai.com/v1/threads',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer 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`,
+                    'OpenAI-Beta': 'assistants=v2'
+                },
+                data: JSON.stringify({}),
+                success: function (response) {
+                    threadId = response.id;
+                    newFetchThreadId = threadId;
+
+                    storeThreadInfo(threadId);
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error with OpenAI API:', status, error);
+                }
+            });
+        }
+
+        function storeThreadInfo(threadId) {
+            var url = `https://mdev.topscripts.in/cohen/createThreads.php?assistant=${assistantIds}&thread=${threadId}&email=${userEmail}&verified=1`;
+
+            $.ajax({
+                url: url,
+                method: 'POST',
+                success: function (response) {
+                    console.log('Thread information stored successfully:', response);
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error storing thread information:', status, error);
+
+                    console.error('Server response:', xhr.responseText);
+                }
+            });
+        }
+
+        const dbSinglePageUrl = `https://mdev.topscripts.in/cohen/createThreads.php?assistant=${assistantIds}&thread=${currentThreadId}&email=${userEmail}&verified=1`;
+    });
+
+
+
+    document.getElementById('inputText').addEventListener('keydown', function (event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            sendMessage();
+        }
+    });
+
+
+    var usefulThreadId = singlePageThreadID;
+    var userInputText111 = document.getElementById('inputText').value.trim();
+
+    var currentThreadId = singlePageThreadID;
+
+    const threadsData = {};
+    let lastSearchSummary = '';
+    let currentAssistantId = "asst_xpLeza6gXpg32Nftz6NG5Ss7";
+    var fileIDz = document.getElementById('file_id_get').value;
+    var fileIdUploaded = "";
+    var fileExtension = "";
+    var assistantIds = "asst_xpLeza6gXpg32Nftz6NG5Ss7";
+    var sendNOtedfaltru = true;
+
+    var activeThreadId = singlePageThreadID;
+    var alreadySelectedAssistantId = "asst_xpLeza6gXpg32Nftz6NG5Ss7";
+    var assistantId = "asst_xpLeza6gXpg32Nftz6NG5Ss7";
+   
+
+
+    if (alreadySelectedAssistantId !== "") {
+
+        fetchThreadsForAssistant(alreadySelectedAssistantId);
+        assistantIds = alreadySelectedAssistantId;
+    }
+
+
+    async function createThreadUsingAPI(assistantIds) {
+      
+        const createNewThreads = {
+            url: "https://api.openai.com/v1/threads",
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer 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",
+                "OpenAI-Beta": "assistants=v2",
+            }
+        };
+
+        try {
+            const response = await fetch(createNewThreads.url, {
+                method: createNewThreads.method,
+                headers: createNewThreads.headers,
+            });
+
+            const data = await response.json();
+            if (response.ok && data.id) {
+
+                $("#threadIdSelected").val(currentThreadId);
+                usefulThreadId = currentThreadId;
+               
+                if (!threadsData) {
+                    threadsData = {};
+                }
+                threadsData[currentThreadId] = [];
+                console.log(assistantIds, currentThreadId);
+                const dbUrl = `https://mdev.topscripts.in/cohen/createThreads.php?assistant=${assistantIds}&thread=${currentThreadId}&email=${userEmail}`;
+
+                console.log('Sending thread data to database:', {
+                    assistant_id: assistantIds,
+                    thread_id: currentThreadId
+                });
+
+                const dbResponse = await fetch(dbUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        assistant_id: assistantIds,
+                        thread_id: currentThreadId
+                    })
+                });
+
+                const dbData = await dbResponse.json();
+                console.log('Database response:', dbData);
+                createThreadInSidebar(currentThreadId, userInputText111);
+            } else {
+                console.error("Error creating thread:", data);
+               
+            }
+        } catch (error) {
+
+            console.error("Error creating thread:", error);
+
+        }
+    };
+
+    async function fetchThreadsForAssistant(assistantId) {
+        const url = `https://mdev.topscripts.in/cohen/getThreads.php?assistant=${assistantId}&email=${userEmail}&_=${Date.now()}`;
+
+        try {
+            const response = await fetch(url);
+            const threads = await response.json();
+
+            if (response.ok && Array.isArray(threads)) {
+                const currentDate = new Date();
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(currentDate.getDate() - 7);
+
+                threads.forEach(thread => {
+                    const lastUpdatedDate = new Date(thread.updated_at);
+
+                });
+            } else {
+                console.error('Error fetching threads:', threads);
+            }
+        } catch (error) {
+            console.error('Failed to fetch threads:', error);
+        }
+    }
+
+
+
+    function getActiveThreadMsg(activeThreadId) {
+        $.ajax({
+            url: `https://api.openai.com/v1/threads/${activeThreadId}/messages`,
+            type: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer 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`,
+                'OpenAI-Beta': 'assistants=v2'
+            },
+            success: function (response) {
+                if (response) {
+                    assistantId = assistantIds;
+                    var imgurl = "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png";
+                    var assistantDetails = {
+                        "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png",
+                        "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png",
+                        "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png"
+                    };
+
+                    if (assistantDetails.hasOwnProperty(assistantId)) {
+                        imgurl = assistantDetails[assistantId];
+                    } else {
+                        console.log("No match found for the given assistantId.");
+                    }
+                    $("#chatMessages").empty();
+                    let allMessagesContent = '';
+                    let isUserMessage = true;
+                    response.data.reverse().forEach(function (message) {
+                        let role = message.role;
+                        let content = message.content[0].text.value;
+                        let messageElement = $('<div>');
+                        const chatMessagesDiv = document.getElementById('chatMessages');
+
+                        if (!chatMessagesDiv) {
+                            console.error("Chat messages container not found");
+                            return;
+                        }
+
+                        function isPointBased(content) {
+                            return content.split('\n').some(line => line.trim().startsWith('-') || line.trim().startsWith('•') || line.trim().match(/^\d+\./));
+                        }
+
+                        if (role === 'assistant') {
+                          const lines = content.split('\n').filter(line => line.trim() !== "");
+                                    let formattedContent = "";
+
+                                    lines.forEach(line => {
+                                        let trimmedLine = line.trim();
+
+                                        if (/^\d+[\.\)]/.test(trimmedLine)) {
+                                            trimmedLine = trimmedLine.replace(/\*\*(.*?)\*\*/, "<strong>$1</strong>");  // Bold the text enclosed in ** **
+                                            formattedContent += `<span>${trimmedLine}</span><br>`;
+                                        }
+                                        else if (/^[\*\-]/.test(trimmedLine)) {
+                                            formattedContent += `<span style="margin-left: 20px;">${trimmedLine}</span><br>`;
+                                        }
+                                        else {
+                                            formattedContent += `${trimmedLine}<br>`;
+                                        }
+                                    });
+
+                                    const resDiv = document.createElement('div');
+                                    resDiv.classList.add('boat-details');
+
+                                    const img = document.createElement('img');
+                                    img.style.width = '45px';
+                                    img.style.marginRight = '10px';
+                                    img.style.height = '45px';
+                                    img.src = imgurl;
+
+                                    resDiv.appendChild(img);
+
+                                    const messageDiv = document.createElement('div');
+                                    messageDiv.classList.add("assistant-message");
+
+                                    messageDiv.innerHTML = formattedContent; 
+
+                                    resDiv.appendChild(messageDiv);
+                                    chatMessagesDiv.appendChild(resDiv);
+
+                        } else if (role === 'user') {
+                            const messageDiv = document.createElement('div');
+                            messageDiv.classList.add("user-message");
+                            if (isPointBased(content)) {
+                                const list = document.createElement('ul');
+                                list.style.listStyleType = 'none';
+
+                                const lines = content.split('\n');
+                                lines.forEach(line => {
+                                    const listItem = document.createElement('li');
+                                    listItem.textContent = line.trim();
+                                    list.appendChild(listItem);
+                                });
+                                messageDiv.appendChild(list);
+                            } else {
+                                const paragraph = document.createElement('p');
+                                paragraph.textContent = content;
+                                messageDiv.appendChild(paragraph);
+                            }
+
+                            if (message.content[1]?.type === "image_file") {
+                                var fileID = message.content[1].image_file.file_id;
+                                $('#chatMessages').append(`<div class="user-message"><img class="src_image" id="file${fileID}" src="" style="max-width: 150px;"></div>`);
+
+                                console.log('preetete', fileID);
+
+                                fetch(`https://api.openai.com/v1/files/${fileID}/content`, {
+                                    headers: {
+                                        Authorization: "Bearer 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",
+                                    },
+                                })
+                                    .then((response) => response.blob())
+                                    .then((blob) => {
+                                        return new Promise((resolve, reject) => {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => resolve(reader.result);
+                                            reader.onerror = reject;
+                                            reader.readAsDataURL(blob);
+                                        });
+                                    })
+                                    .then((base64String) => {
+                                        console.log("Perfect Response", base64String);
+
+                                        const imgElement = document.getElementById(`file${fileID}`);
+                                        imgElement.src = base64String;
+                                    })
+                                    .catch((error) => console.error("Error fetching image:", error));
+                            }
+
+                            chatMessagesDiv.appendChild(messageDiv);
+                        }
+                    });
+                } else {
+                    console.error('Response does not contain messages array:', response);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error fetching messages:', error);
+                alert('An error occurred while fetching the messages.');
+            }
+        });
+    }
+    function appendChatMessages(messagesContent) {
+        $('#chatMessages').append(messagesContent);
+    }
+
+
+    async function sendMessage() {
+
+        fileIdUploaded = document.getElementById('file_id_get').value.trim();
+        var inputText = document.getElementById('inputText').value.trim();
+        userInputText111 = inputText;
+        inputText = userInputText111;
+
+        $('.assistant_details_div').hide();
+        if (inputText) {
+            console.log()
+
+            const urll = `https://mdev.topscripts.in/cohen/getThreads.php?assistant=${assistantId}&email=${userEmail}&_=${Date.now()}`;
+            const response = await fetch(urll);
+
+            var imgpath = $('#imagePreview').attr('src');
+            if (imgpath != "") {
+                $('#chatMessages').append(`<div class="user-message"><img class="src_image" src="${imgpath}" style="max-width: 150px;"></div>`);
+            }
+
+
+            appendMessage(inputText, 'user-message');
+            appendMessage('loading', 'loading-message');
+
+            document.getElementById('inputText').value = '';
+
+
+            var uploadData = null;
+
+            function getFileExtension(fileIdUploaded) {
+                return fileIdUploaded.split('.').pop().toLowerCase();
+            }
+
+            if (fileIdUploaded) {
+
+
+                if (fileExtension === 'pdf') {
+                    uploadData = {
+                        role: "user",
+                        content: [
+                            {
+                                type: "text",
+                                text: userInputText111,
+                                attachments: [
+                                    {
+                                        file_id: fileIdUploaded,
+                                        tools: [{ "type": "file_search" }]
+                                    }
+                                ]
+                            }
+                        ]
+                    };
+                } else if (['png', 'jpeg', 'jpg'].includes(fileExtension)) {
+                    uploadData = {
+                        role: "user",
+                        content: [
+                            {
+                                type: "text",
+                                text: userInputText111
+                            },
+                            {
+                                type: "image_file",
+                                image_file: {
+                                    file_id: fileIdUploaded
+                                }
+                            }
+                        ]
+                    };
+                } else {
+                    uploadData = {
+                        role: "user",
+                        content: [
+                            {
+                                type: "text",
+                                text: userInputText111
+                            }
+                        ]
+                    };
+                }
+            } else {
+                uploadData = {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: userInputText111
+                        }
+                    ]
+                };
+            }
+
+            var requestData = uploadData ? JSON.stringify(uploadData) : JSON.stringify({ question: question });
+
+            $.ajax({
+                url: "https://api.openai.com/v1/threads/" + newFetchThreadId + "/messages",
+                type: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer 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",
+                    "OpenAI-Beta": "assistants=v2"
+                },
+                data: requestData,
+                success: function (response) {
+
+                    messageId = response.id;
+                    const imageContainer = document.getElementById('imageContainer');
+                    imageContainer.style.display = 'none';
+                    $('#imagePreview').attr('src', '');
+                    const fileInput = document.getElementById('fileInput');
+                    fileInput.value = '';
+                    document.getElementById('file_id_get').value = "";
+
+                    triggerRunOnThread(usefulThreadId);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error sending message:", error);
+
+                }
+            });
+
+
+            function triggerRunOnThread(usefulThreadId) {
+                var trigerThreadId = newFetchThreadId;
+
+                var runData = {
+                    assistant_id: "asst_xpLeza6gXpg32Nftz6NG5Ss7"
+                };
+
+                fetch("https://api.openai.com/v1/threads/" + trigerThreadId + "/runs", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer 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",
+                        "Content-Type": "application/json",
+                        "OpenAI-Beta": "assistants=v2"
+                    },
+                    body: JSON.stringify(runData)
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Run triggered successfully:", data);
+                        runCurlRequest(trigerThreadId);
+                    })
+                    .catch(error => {
+                        console.error("Error triggering run:", error);
+                    });
+            }
+            function runCurlRequest(trigerThreadId) {
+                const url = `https://api.openai.com/v1/threads/${trigerThreadId}/messages`;
+
+                $.ajax({
+                    url: url,
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer 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",
+                        "OpenAI-Beta": "assistants=v2"
+                    },
+                    success: function (response) {
+                      
+
+                        if (
+                            !response.data ||
+                            !Array.isArray(response.data) ||
+                            response.data.length === 0 ||
+                            !response.data[0].content ||
+                            !Array.isArray(response.data[0].content) ||
+                            response.data[0].content.length === 0 ||
+                            !response.data[0].content[0].text
+                        ) {
+                            console.error("Invalid response structure or missing data");
+                            setTimeout(() => {
+                                runCurlRequest(trigerThreadId);
+
+                                $(".cux__grid-wrapper").hide();
+
+                            }, 8000);
+                            return false;
+                        }
+
+                        var lastRole = response.data[0].role;
+                        var textContent = response.data[0].content[0].text.value;
+                        if (response.data[0]?.content[1]?.type === "image_file") {
+                            var fileID = response.data[0].content[1].image_file.file_id;
+                        }
+
+                        if (
+                            lastRole === "user" ||
+                            (lastRole === "assistant" && textContent === "")
+                        ) {
+                            setTimeout(() => {
+                                runCurlRequest(trigerThreadId);
+                                $(".cux__grid-wrapper").hide();
+                            }, 5000);
+                            return false;
+                        } else {
+                            const chatMessagesDiv = document.getElementById('chatMessages');
+                            if (chatMessagesDiv.lastElementChild) {
+                                chatMessagesDiv.removeChild(chatMessagesDiv.lastElementChild);
+                            }
+
+                            function typeCharacterByCharacter(textContent, appendMessage) {
+                                let index = 0;
+                                let typingSpeed = 15;
+                                var assistantDetails = {
+                                    "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png",
+                                    "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png",
+                                    "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png"
+                                };
+
+
+                                if (assistantDetails.hasOwnProperty(assistantIds)) {
+                                    imgurl = assistantDetails[assistantIds];
+                                } else {
+                                    console.log("No match found for the given assistantId.");
+                                }
+
+
+                                const chatMessagesDiv = document.getElementById('chatMessages');
+
+                                const resDiv = document.createElement('div');
+
+
+                                resDiv.classList.add('boat-details');
+                                const img = document.createElement('img');
+                                img.style.width = '45px';
+                                img.style.marginRight = '10px';
+                                img.style.height = '45px';
+                                img.src = imgurl;
+
+                                resDiv.appendChild(img);
+
+                                const messageDiv = document.createElement('div');
+
+                                messageDiv.classList.add('bot-message');
+
+                                resDiv.appendChild(messageDiv);
+                                chatMessagesDiv.appendChild(resDiv);
+                                chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+
+
+
+                                function typeNextCharacter() {
+                                   const lines = textContent.split('\n').filter(line => line.trim() !== "");
+
+        let formattedContent = "";
+        lines.forEach(line => {
+            let trimmedLine = line.trim();
+
+            if (/^\d+[\.\)]/.test(trimmedLine)) {
+                trimmedLine = trimmedLine.replace(/\*\*(.*?)\*\*/, "<strong>$1</strong>"); 
+                formattedContent += `<span>${trimmedLine}</span><br>`;
+            }
+            else if (/^[\*\-]/.test(trimmedLine)) {
+                formattedContent += `<span style="margin-left: 20px;">${trimmedLine}</span><br>`;
+            }
+            else {
+                formattedContent += `${trimmedLine}<br>`;
+            }
+        });
+
+        if (index < formattedContent.length) {
+            messageDiv.innerHTML = formattedContent.slice(0, index + 5);  
+            index++;
+            setTimeout(typeNextCharacter, typingSpeed);  
+        }
+    }
+                                typeNextCharacter();
+                            }
+
+                            typeCharacterByCharacter(textContent, appendMessage);
+
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        runCurlRequest(trigerThreadId);
+                        console.error("Error in AJAX request:", status, error);
+                        $('#chatMessages').html('<div class="error-message">Failed to load messages. Please try again later.</div>');
+                    }
+                });
+
+            }
+
+        } else {
+            if (currentThreadId === null || usefulThreadId === null) {
+                await createThreadUsingAPI();
+            }
+            alert("Please enter some text.");
+        }
+    }
+
+
+    function appendLoadingMessage() {
+        const loadingMessage = { content: "" };
+
+        const messageContainer = document.createElement('div');
+        messageContainer.classList.add('message', 'bot-message', 'loading-dots');
+        messageContainer.textContent = loadingMessage.content;
+        document.getElementById('chatMessages').appendChild(messageContainer);
+
+        document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+    }
+
+
+    function appendMessage(message, className) {
+        assistantId = assistantIds;
+        var imgurl = "";
+        var assistantDetails = {
+            "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png",
+            "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png",
+            "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png"
+        };
+
+
+        if (assistantDetails.hasOwnProperty(assistantId)) {
+            imgurl = assistantDetails[assistantId];
+        } else {
+            console.log("No match found for the given assistantId.");
+        }
+
+
+        const chatMessagesDiv = document.getElementById('chatMessages');
+
+        const resDiv = document.createElement('div');
+
+        if (className === 'bot-message' || className === 'assistant-message') {
+            resDiv.classList.add('boat-details');
+
+            const img = document.createElement('img');
+            img.style.width = '45px';
+            img.style.marginRight = '10px';
+            img.style.height = '45px';
+            img.src = imgurl;
+
+            resDiv.appendChild(img);
+
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add(className);
+            messageDiv.textContent = message;
+
+            resDiv.appendChild(messageDiv);
+
+            chatMessagesDiv.appendChild(resDiv);
+
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+
+        }
+        else if (className === 'loading-message' && message == 'loading') {
+            resDiv.classList.add('boat-details');
+
+            const img = document.createElement('img');
+            img.style.width = '45px';
+            img.style.marginRight = '10px';
+            img.style.height = '45px';
+            img.src = imgurl;
+
+            resDiv.appendChild(img);
+
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add(className);
+            messageDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="4em" height="4em" viewBox="0 0 24 24"><circle cx="18" cy="12" r="0" fill="currentColor"><animate attributeName="r" begin=".67" calcMode="spline" dur="1.5s" keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8" repeatCount="indefinite" values="0;2;0;0"/></circle><circle cx="12" cy="12" r="0" fill="currentColor"><animate attributeName="r" begin=".33" calcMode="spline" dur="1.5s" keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8" repeatCount="indefinite" values="0;2;0;0"/></circle><circle cx="6" cy="12" r="0" fill="currentColor"><animate attributeName="r" begin="0" calcMode="spline" dur="1.5s" keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8" repeatCount="indefinite" values="0;2;0;0"/></circle></svg>';
+
+            resDiv.appendChild(messageDiv);
+
+            chatMessagesDiv.appendChild(resDiv);
+
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+
+        }
+        else {
+            const chatMessagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add(className);
+            messageDiv.textContent = message;
+            chatMessagesDiv.appendChild(messageDiv);
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+        }
+
+    }
+
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+
+        if (!file) {
+            sendMessage();
+        } else {
+            const validImageTypes = ['image/png', 'image/jpg', 'image/jpeg'];
+            const validPDFTypes = ['application/pdf', 'application/jsonl'];
+
+            if (validImageTypes.includes(file.type)) {
+                const reader = new FileReader();
+
+                reader.onload = function (e) {
+                    const imageContainer = document.getElementById('imageContainer');
+                    const imagePreview = document.getElementById('imagePreview');
+
+                    imagePreview.src = e.target.result;
+                    imageContainer.style.display = 'block';
+                    uploadFileToOpenAI(file);
+                    fileExtension = "png";
+                };
+
+                reader.readAsDataURL(file);
+            } else if (validPDFTypes.includes(file.type)) {
+                uploadPDFToOpenAI(file);
+                fileExtension = "pdf";
+            } else {
+                alert('Invalid file type. Please upload an image or PDF.');
+            }
+        }
+    }
+
+    function uploadFileToOpenAI(file) {
+        const formData = new FormData();
+        formData.append('purpose', 'vision');
+        formData.append('file', file);
+
+        fetch('https://api.openai.com/v1/files', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer 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',
+            },
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.id) {
+                    console.log('File uploaded successfully. File ID:', data.id);
+                    document.getElementById('file_id_get').value = data.id;
+                } else {
+                    console.error('Error uploading file:', data);
+                    alert('Error uploading file. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error uploading file. Please try again.');
+            });
+    }
+
+    function uploadPDFToOpenAI(file) {
+        const formData = new FormData();
+        formData.append('purpose', 'assistants');
+        formData.append('file', file);
+
+        fetch('https://api.openai.com/v1/files', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer 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',
+            },
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.id) {
+                    console.log('File uploaded successfully. File ID:', data.id);
+                    document.getElementById('file_id_get').value = data.id;
+                } else {
+                    console.error('Error uploading file:', data);
+                    alert('Error uploading file. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error uploading file. Please try again.');
+            });
+    }
+
+    newFetchThreadId = alreadyStoreThread;
+    getMessage(alreadyStoreThread);
+    function getMessage(alreadyStoreThread) {
+        const url = `https://api.openai.com/v1/threads/${alreadyStoreThread}/messages`;
+
+        $.ajax({
+            url: url,
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer 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",
+                "OpenAI-Beta": "assistants=v2"
+            },
+            success: function (response) {
+                if (response) {
+                    assistantId = assistantIds;
+                    console.log(assistantId)
+                    var imgurl = "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png";
+                    var assistantDetails = {
+                        "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png",
+                        "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png",
+                        "asst_xpLeza6gXpg32Nftz6NG5Ss7": "https://cdn.prod.website-files.com/670002990f4e48f1ef7a6e86/6739c701e7df684287c9efbe_Frame%209.png"
+                    };
+
+                    if (assistantDetails.hasOwnProperty(assistantId)) {
+                        imgurl = assistantDetails[assistantId];
+                    } else {
+                        console.log("No match found for the given assistantId.");
+                    }
+                    $("#chatMessages").empty();
+                    let allMessagesContent = '';
+                    let isUserMessage = true;
+                    response.data.reverse().forEach(function (message) {
+                        let role = message.role;
+                        let content = message.content[0].text.value;
+                        let messageElement = $('<div>');
+                        const chatMessagesDiv = document.getElementById('chatMessages');
+
+                        if (!chatMessagesDiv) {
+                            console.error("Chat messages container not found");
+                            return;
+                        }
+                        function isPointBased(content) {
+                            return content.split('\n').some(line => line.trim().startsWith('-') || line.trim().startsWith('•') || line.trim().match(/^\d+\./));
+                        }
+
+                        if (role === 'assistant') {
+                            const resDiv = document.createElement('div');
+                            resDiv.classList.add('boat-details');
+
+                            const img = document.createElement('img');
+                            img.style.width = '45px';
+                            img.style.marginRight = '10px';
+                            img.style.height = '45px';
+                            img.src = imgurl;
+
+                            resDiv.appendChild(img);
+
+                            const messageDiv = document.createElement('div');
+                            messageDiv.classList.add("assistant-message");
+
+                            if (isPointBased(content)) {
+                                const list = document.createElement('ul');
+                                list.style.listStyleType = 'none';
+
+                                const lines = content.split('\n');
+                                lines.forEach(line => {
+                                    const listItem = document.createElement('li');
+                                    listItem.textContent = line.trim();
+                                    list.appendChild(listItem);
+                                });
+                                messageDiv.appendChild(list);
+                            } else {
+                                const paragraph = document.createElement('p');
+                                paragraph.textContent = content;
+                                messageDiv.appendChild(paragraph);
+                            }
+
+                            resDiv.appendChild(messageDiv);
+                            chatMessagesDiv.appendChild(resDiv);
+
+                        } else if (role === 'user') {
+                            const messageDiv = document.createElement('div');
+                            messageDiv.classList.add("user-message");
+
+                            if (isPointBased(content)) {
+                                const list = document.createElement('ul');
+                                list.style.listStyleType = 'none';
+
+                                const lines = content.split('\n');
+                                lines.forEach(line => {
+                                    const listItem = document.createElement('li');
+                                    listItem.textContent = line.trim();
+                                    list.appendChild(listItem);
+                                });
+                                messageDiv.appendChild(list);
+                            } else {
+                                const paragraph = document.createElement('p');
+                                paragraph.textContent = content;
+                                messageDiv.appendChild(paragraph);
+                            }
+
+                            if (message.content[1]?.type === "image_file") {
+                                var fileID = message.content[1].image_file.file_id;
+                                $('#chatMessages').append(`<div class="user-message"><img class="src_image" id="file${fileID}" src="" style="max-width: 150px;"></div>`);
+
+                                console.log('preetete', fileID);
+
+                                fetch(`https://api.openai.com/v1/files/${fileID}/content`, {
+                                    headers: {
+                                        Authorization: "Bearer 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",
+                                    },
+                                })
+                                    .then((response) => response.blob())
+                                    .then((blob) => {
+                                        return new Promise((resolve, reject) => {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => resolve(reader.result);
+                                            reader.onerror = reject;
+                                            reader.readAsDataURL(blob);
+                                        });
+                                    })
+                                    .then((base64String) => {
+                                        console.log("Perfect Response", base64String);
+
+                                        const imgElement = document.getElementById(`file${fileID}`);
+                                        imgElement.src = base64String;
+                                    })
+                                    .catch((error) => console.error("Error fetching image:", error));
+                            }
+
+                            chatMessagesDiv.appendChild(messageDiv);
+                        }
+                    });
+                } else {
+                    console.error('Response does not contain messages array:', response);
+                }
+
+
+
+            }
+        });
+
+    }
+
+
+
+</script>
